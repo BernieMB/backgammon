@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backgammon</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  color:var(--text);
+  background:radial-gradient(ellipse at 50% 25%,var(--bg1),var(--bg2) 75%) fixed;
+  transition:background .4s,color .4s;
+  overflow:hidden;
+  user-select:none;
+}
+/* ---------- Temas ---------- */
+[data-theme="classic"]{--bg1:#3b2617;--bg2:#120b06;--frame:#6b3f1f;--framehi:#9a6337;--bar:#4b2a13;--tray:#3a200e;--felt:#ead8b1;--ptA:#a23a2c;--ptB:#2f4d3c;--p0:#efe4cb;--p0hi:#ffffff;--p0edge:#a99572;--p1:#2a1e18;--p1hi:#6a554a;--p1edge:#0b0705;--hl:#ffcc33;--accent:#e2b264;--text:#f6ecd9;--num:#f3dcae;--panel:rgba(25,15,8,.72);--btn:rgba(255,235,200,.1);--btnhi:rgba(255,235,200,.2)}
+[data-theme="casino"]{--bg1:#0f3d26;--bg2:#04140c;--frame:#2b2b2e;--framehi:#55555c;--bar:#1b1b1d;--tray:#151517;--felt:#17603a;--ptA:#d4af37;--ptB:#f1ead6;--p0:#f5f5f2;--p0hi:#ffffff;--p0edge:#9c9c95;--p1:#b3121f;--p1hi:#ff5a5f;--p1edge:#5c0008;--hl:#5af2ff;--accent:#d4af37;--text:#eef7f0;--num:#d4af37;--panel:rgba(0,0,0,.55);--btn:rgba(255,255,255,.08);--btnhi:rgba(255,255,255,.18)}
+[data-theme="midnight"]{--bg1:#1d2546;--bg2:#070912;--frame:#1a2038;--framehi:#3b4677;--bar:#121729;--tray:#0e1220;--felt:#232c4d;--ptA:#5b7cfa;--ptB:#8892b0;--p0:#e8edf7;--p0hi:#ffffff;--p0edge:#8b96b3;--p1:#f2a541;--p1hi:#ffd58a;--p1edge:#8a5410;--hl:#7cffb2;--accent:#7aa2ff;--text:#e6ebff;--num:#9fb2ff;--panel:rgba(8,10,25,.65);--btn:rgba(160,180,255,.1);--btnhi:rgba(160,180,255,.22)}
+[data-theme="sand"]{--bg1:#e8d7b4;--bg2:#9a7a4a;--frame:#c49a5c;--framehi:#e5c58e;--bar:#a77d43;--tray:#93683a;--felt:#f6ecd4;--ptA:#2a8079;--ptB:#e06a4e;--p0:#fffaf0;--p0hi:#ffffff;--p0edge:#b9a98a;--p1:#20394a;--p1hi:#4f7590;--p1edge:#0b1822;--hl:#ff2f6e;--accent:#20394a;--text:#2b2115;--num:#5a3d18;--panel:rgba(255,248,232,.78);--btn:rgba(60,40,10,.08);--btnhi:rgba(60,40,10,.18)}
+
+/* ---------- Pantallas ---------- */
+.screen{position:fixed;inset:0;display:none}
+.screen.active{display:flex}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);background:var(--btn);padding:.65em 1.3em;border-radius:999px;font-weight:600;letter-spacing:.02em;transition:background .15s,transform .1s,opacity .2s}
+.btn:hover:not(:disabled){background:var(--btnhi)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.primary{background:var(--accent);color:#1a1209;border-color:var(--accent)}
+[data-theme="sand"] .btn.primary{color:#fff}
+.btn.primary:hover:not(:disabled){filter:brightness(1.1);background:var(--accent)}
+.btn.pulse{animation:btnPulse 1s ease-in-out infinite alternate}
+@keyframes btnPulse{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--hl) 60%,transparent)}to{box-shadow:0 0 0 7px transparent;background:var(--btnhi)}}
+
+/* ---------- Menú ---------- */
+#menu{align-items:center;justify-content:center;overflow:auto;padding:20px}
+.menu-card{width:min(560px,100%);background:var(--panel);backdrop-filter:blur(8px);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:22px;padding:28px 34px 30px;box-shadow:0 25px 60px rgba(0,0,0,.45);margin:auto}
+.logo{display:flex;justify-content:center}
+.menu-card h1{text-align:center;font-family:Georgia,"Times New Roman",serif;font-size:2.8rem;letter-spacing:.12em;margin:.1em 0 0;color:var(--accent);text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.sub{text-align:center;margin:.2em 0 1.4em;opacity:.75;font-style:italic}
+.field{margin-bottom:1.1em}
+.field>label{display:block;font-size:.78rem;text-transform:uppercase;letter-spacing:.14em;opacity:.7;margin-bottom:.45em}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);background:var(--btn);padding:.7em .5em;border-radius:12px;font-weight:600;transition:all .15s}
+.seg button small{display:block;font-weight:400;opacity:.7;font-size:.75rem;margin-top:2px}
+.seg button:hover{background:var(--btnhi)}
+.seg button.on{background:var(--accent);color:#1a1209;border-color:var(--accent)}
+[data-theme="sand"] .seg button.on{color:#fff}
+.hint{font-size:.82rem;opacity:.7;margin:.5em 0 0;min-height:1.2em}
+.row{display:flex;gap:8px}
+.row input{flex:1;min-width:0;padding:.6em .8em;border-radius:10px;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);background:var(--btn);color:var(--text);font:inherit}
+.row input:disabled{opacity:.5}
+.themes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sw{border:2px solid transparent;border-radius:12px;padding:6px;background:rgba(128,128,128,.16);font-size:.72rem;text-align:center}
+.sw.on{border-color:var(--hl)}
+.sw .mini{height:38px;border-radius:7px;background:var(--frame);padding:4px;display:flex;gap:3px;margin-bottom:4px}
+.sw .mini i{flex:1;background:var(--felt);border-radius:2px;position:relative;overflow:hidden}
+.sw .mini i:before,.sw .mini i:after{content:"";position:absolute;top:0;width:50%;height:70%;clip-path:polygon(0 0,100% 0,50% 100%)}
+.sw .mini i:before{left:0;background:var(--ptA)}
+.sw .mini i:after{right:0;background:var(--ptB)}
+.sw .mini b{width:12px;height:12px;border-radius:50%;align-self:flex-end;background:var(--p0);border:1px solid var(--p0edge)}
+.sw .mini b+b{background:var(--p1);border-color:var(--p1edge)}
+.chk{display:flex;gap:.5em;align-items:center;font-size:.9rem;margin:.4em 0 1.3em;opacity:.9;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.actions .btn{min-width:150px}
+
+/* ---------- Juego ---------- */
+#game{flex-direction:column;height:100%}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px 4px}
+.pl{display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:14px;background:var(--panel);border:2px solid transparent;min-width:0;flex:1;max-width:380px;transition:border-color .25s,box-shadow .25s}
+.pl.act{border-color:var(--hl);box-shadow:0 0 18px color-mix(in srgb,var(--hl) 35%,transparent)}
+#pl1{flex-direction:row-reverse;text-align:right}
+.chip{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:0 2px 4px rgba(0,0,0,.4)}
+.chip.c0{background:radial-gradient(circle at 35% 30%,var(--p0hi),var(--p0));border:2px solid var(--p0edge)}
+.chip.c1{background:radial-gradient(circle at 35% 30%,var(--p1hi),var(--p1));border:2px solid var(--p1edge)}
+.pl .info{flex:1;min-width:0}
+.pl .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .st{font-size:.78rem;opacity:.75}
+.pl .sc{font-size:1.6rem;font-weight:800;font-family:Georgia,serif;color:var(--accent);padding:0 4px}
+.midtools{display:flex;gap:6px}
+.midtools .btn{padding:.45em .9em;font-size:.88rem}
+.board-wrap{flex:1;min-height:0;display:flex;justify-content:center;align-items:center;padding:4px 10px}
+#board{width:100%;height:100%;max-width:1300px;filter:drop-shadow(0 18px 30px rgba(0,0,0,.5))}
+.bottombar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 16px 12px;flex-wrap:wrap}
+#msg{flex:1;min-width:240px;background:var(--panel);padding:.6em 1em;border-radius:12px;font-size:.95rem;min-height:2.6em;display:flex;align-items:center}
+.tools{display:flex;gap:8px}
+
+/* SVG */
+.frame{fill:var(--frame)}
+.framehi{fill:none;stroke:var(--framehi);stroke-width:3;opacity:.6}
+.felt{fill:var(--felt)}
+.inset{fill:none;stroke:rgba(0,0,0,.45);stroke-width:4}
+.barr{fill:var(--bar)}
+.tray{fill:var(--tray);stroke:rgba(0,0,0,.4);stroke-width:3}
+.ptA{fill:var(--ptA)}
+.ptB{fill:var(--ptB)}
+.num{fill:var(--num);font-size:14px;font-weight:700;text-anchor:middle;opacity:.85;font-family:Georgia,serif}
+.dest{fill:var(--hl);animation:pulse 1s ease-in-out infinite alternate;pointer-events:none}
+@keyframes pulse{from{opacity:.18}to{opacity:.55}}
+.slot{fill:none;stroke:var(--hl);stroke-width:3;stroke-dasharray:6 5;pointer-events:none}
+.cb.c0{fill:url(#cg0);stroke:var(--p0edge);stroke-width:2}
+.cb.c1{fill:url(#cg1);stroke:var(--p1edge);stroke-width:2}
+.cr{fill:none;stroke-width:1.6;stroke-opacity:.6}
+.cr.c0{stroke:var(--p0edge)}
+.cr.c1{stroke:var(--p1hi)}
+.cnum{font-size:20px;font-weight:800;text-anchor:middle;font-family:Georgia,serif}
+.cnum.c0{fill:var(--p1)}
+.cnum.c1{fill:var(--p0)}
+.ring{fill:none;pointer-events:none}
+.ring.mv{stroke:var(--hl);stroke-width:3;opacity:.75;stroke-dasharray:8 5;animation:spin 6s linear infinite}
+.ring.sel{stroke:var(--hl);stroke-width:5}
+@keyframes spin{to{stroke-dashoffset:-130}}
+.slab.c0{fill:var(--p0);stroke:var(--p0edge);stroke-width:1.5}
+.slab.c1{fill:var(--p1);stroke:var(--p1edge);stroke-width:1.5}
+.dbody.d0{fill:var(--p0);stroke:var(--p0edge);stroke-width:2}
+.dbody.d1{fill:var(--p1);stroke:var(--p1edge);stroke-width:2}
+.dpip.d0{fill:var(--p1)}
+.dpip.d1{fill:var(--p0)}
+.die.used{opacity:.28}
+.dice{cursor:pointer}
+.rollbtn{cursor:pointer}
+.rollbtn rect{fill:var(--accent);stroke:rgba(0,0,0,.35);stroke-width:2}
+.rollbtn text{fill:#1a1209;font-weight:800;font-size:19px;text-anchor:middle;letter-spacing:.08em}
+[data-theme="sand"] .rollbtn text{fill:#fff}
+.rollbtn:hover rect{filter:brightness(1.12)}
+.hz{fill:#000;fill-opacity:0;cursor:pointer}
+.trayhl{fill:var(--hl);animation:pulse 1s ease-in-out infinite alternate;pointer-events:none}
+.label-off{fill:var(--num);font-size:11px;text-anchor:middle;opacity:.7;letter-spacing:.1em}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:10;animation:fade .3s}
+.modal.hidden{display:none}
+@keyframes fade{from{opacity:0}}
+.modal-box{background:var(--panel);backdrop-filter:blur(10px);border:1px solid var(--accent);border-radius:20px;padding:28px 40px;text-align:center;min-width:300px;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.modal-box h2{font-family:Georgia,serif;font-size:2rem;margin:.1em 0;color:var(--accent)}
+.modal-box p{margin:.4em 0 1.2em;font-size:1.05rem}
+.modal-box .actions{margin-top:.6em}
+
+/* Instrucciones */
+#rules{overflow:auto;justify-content:center;padding:24px}
+.rules-box{width:min(860px,100%);background:var(--panel);backdrop-filter:blur(8px);border-radius:22px;padding:26px 40px 34px;margin:auto;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);line-height:1.6;user-select:text}
+.rules-box h1{font-family:Georgia,serif;color:var(--accent);margin:.2em 0 .3em;letter-spacing:.06em}
+.rules-box h2{font-family:Georgia,serif;color:var(--accent);font-size:1.25rem;margin:1.5em 0 .3em;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent);padding-bottom:.2em}
+.rules-box ul,.rules-box ol{padding-left:1.3em;margin:.3em 0}
+.rules-box li{margin:.2em 0}
+.rules-box kbd{background:var(--btnhi);border-radius:5px;padding:1px 7px;font-size:.85em;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+.rules-box table{border-collapse:collapse;margin:.5em 0}
+.rules-box td,.rules-box th{border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:.35em .8em;text-align:left}
+.rules-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tip{background:var(--btn);border-left:4px solid var(--accent);padding:.6em 1em;border-radius:8px;margin:.8em 0}
+
+@media (max-width:760px){
+  .pl .st{display:none}
+  .midtools .btn{padding:.4em .6em;font-size:.8rem}
+  .rules-box{padding:18px}
+  .menu-card{padding:20px}
+  .menu-card h1{font-size:2.1rem}
+}
+</style>
+</head>
+<body data-theme="classic">
+
+<!-- ================= MENÚ ================= -->
+<section id="menu" class="screen active">
+  <div class="menu-card">
+    <div class="logo">
+      <svg width="170" height="80" viewBox="0 0 170 80">
+        <g transform="translate(20,40) rotate(-14)"><rect x="-24" y="-24" width="48" height="48" rx="9" class="dbody d0"/><circle cx="-12" cy="-12" r="4.5" class="dpip d0"/><circle cx="0" cy="0" r="4.5" class="dpip d0"/><circle cx="12" cy="12" r="4.5" class="dpip d0"/><circle cx="12" cy="-12" r="4.5" class="dpip d0"/><circle cx="-12" cy="12" r="4.5" class="dpip d0"/></g>
+        <circle cx="85" cy="44" r="24" fill="url(#cg1m)" stroke="var(--p1edge)" stroke-width="2"/>
+        <circle cx="85" cy="44" r="16" fill="none" stroke="var(--p1hi)" stroke-opacity=".6"/>
+        <g transform="translate(148,40) rotate(12)"><rect x="-24" y="-24" width="48" height="48" rx="9" class="dbody d1"/><circle cx="-11" cy="-11" r="4.5" class="dpip d1"/><circle cx="11" cy="11" r="4.5" class="dpip d1"/><circle cx="11" cy="-11" r="4.5" class="dpip d1"/><circle cx="-11" cy="11" r="4.5" class="dpip d1"/></g>
+        <defs><radialGradient id="cg1m" cx="35%" cy="30%" r="75%"><stop offset="0" style="stop-color:var(--p1hi)"/><stop offset="1" style="stop-color:var(--p1)"/></radialGradient></defs>
+      </svg>
+    </div>
+    <h1>BACKGAMMON</h1>
+    <p class="sub">El clásico juego de dados y estrategia</p>
+
+    <div class="field">
+      <label>Modo de juego</label>
+      <div class="seg" id="modeSeg">
+        <button data-v="1">1 jugador<small>contra el ordenador</small></button>
+        <button data-v="2">2 jugadores<small>en el mismo equipo</small></button>
+      </div>
+    </div>
+    <div class="field" id="diffField">
+      <label>Dificultad del ordenador</label>
+      <div class="seg" id="diffSeg">
+        <button data-v="easy">Fácil</button>
+        <button data-v="normal">Normal</button>
+        <button data-v="hard">Difícil</button>
+      </div>
+      <p class="hint" id="diffHint"></p>
+    </div>
+    <div class="field">
+      <label>Nombres</label>
+      <div class="row"><input id="name1" maxlength="18" placeholder="Jugador 1"><input id="name2" maxlength="18" placeholder="Jugador 2"></div>
+    </div>
+    <div class="field">
+      <label>Tema del tablero</label>
+      <div class="themes" id="themeSel"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="autoEnd"> Terminar el turno automáticamente al acabar de mover</label>
+    <div class="actions">
+      <button class="btn primary" id="btnPlay">Nueva partida</button>
+      <button class="btn" id="btnContinue">Continuar partida</button>
+      <button class="btn" id="btnRules">Instrucciones</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= JUEGO ================= -->
+<section id="game" class="screen">
+  <header class="topbar">
+    <div class="pl" id="pl0"><span class="chip c0"></span><div class="info"><div class="nm"></div><div class="st"></div></div><div class="sc"></div></div>
+    <div class="midtools">
+      <button class="btn" id="bMenu" title="Volver al menú">Menú</button>
+      <button class="btn" id="bTheme" title="Cambiar tema">Tema</button>
+      <button class="btn" id="bHelp" title="Instrucciones">Reglas</button>
+    </div>
+    <div class="pl" id="pl1"><span class="chip c1"></span><div class="info"><div class="nm"></div><div class="st"></div></div><div class="sc"></div></div>
+  </header>
+  <div class="board-wrap">
+    <svg id="board" viewBox="0 0 1100 760" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="cg0" cx="35%" cy="30%" r="75%"><stop offset="0" style="stop-color:var(--p0hi)"/><stop offset="1" style="stop-color:var(--p0)"/></radialGradient>
+        <radialGradient id="cg1" cx="35%" cy="30%" r="75%"><stop offset="0" style="stop-color:var(--p1hi)"/><stop offset="1" style="stop-color:var(--p1)"/></radialGradient>
+        <linearGradient id="gTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+        <linearGradient id="gBot" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+        <filter id="sh" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="1.5" dy="3" stdDeviation="2.5" flood-opacity=".45"/></filter>
+        <filter id="grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.004 0.09" numOctaves="3" seed="11"/>
+          <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.1 0 0 0 -0.42"/>
+          <feComposite in2="SourceGraphic" operator="in"/>
+        </filter>
+        <filter id="feltf" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+          <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 -0.25"/>
+          <feComposite in2="SourceGraphic" operator="in"/>
+        </filter>
+      </defs>
+      <g id="layer"></g>
+    </svg>
+  </div>
+  <footer class="bottombar">
+    <div id="msg"></div>
+    <div class="tools">
+      <button class="btn primary" id="bRoll">Tirar dados</button>
+      <button class="btn" id="bUndo">Deshacer</button>
+      <button class="btn" id="bEnd">Terminar turno</button>
+    </div>
+  </footer>
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="mTitle"></h2>
+      <p id="mText"></p>
+      <div class="actions">
+        <button class="btn primary" id="mAgain">Revancha</button>
+        <button class="btn" id="mMenu">Menú</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= INSTRUCCIONES ================= -->
+<section id="rules" class="screen">
+  <div class="rules-box">
+    <div class="rules-top"><h1>Cómo se juega</h1><button class="btn primary" id="rulesBack">Volver</button></div>
+
+    <h2>Objetivo</h2>
+    <p>Cada jugador tiene <b>15 fichas</b>. El objetivo es llevarlas todas a tu <b>casa</b> (tu cuadrante final de 6 puntos) y después <b>sacarlas del tablero</b>. Gana quien saque primero sus 15 fichas.</p>
+
+    <h2>El tablero</h2>
+    <ul>
+      <li>El tablero tiene <b>24 triángulos</b> llamados <i>puntos</i>, divididos en cuatro cuadrantes de 6 puntos. La franja central se llama <b>barra</b>.</li>
+      <li>Los números del borde indican la distancia de cada punto a la salida desde el punto de vista del jugador que mueve (el punto 1 es el más cercano a la salida).</li>
+      <li>El <b>Jugador 1</b> (fichas claras) tiene su casa abajo a la derecha y mueve en sentido <b>antihorario</b>: de arriba a la derecha → arriba a la izquierda → abajo a la izquierda → abajo a la derecha.</li>
+      <li>El <b>Jugador 2 / Ordenador</b> (fichas oscuras) tiene su casa arriba a la derecha y mueve en sentido <b>horario</b>, justo al revés.</li>
+      <li>Las fichas que salen del tablero se apilan en la <b>bandeja</b> de la derecha.</li>
+    </ul>
+    <p>Posición inicial de cada jugador: 2 fichas en su punto 24, 5 en el 13, 3 en el 8 y 5 en el 6.</p>
+
+    <h2>Inicio de la partida</h2>
+    <p>Cada jugador tira un dado. Quien saque el número más alto empieza y usa <b>esos dos dados</b> como su primera tirada. Si hay empate, se vuelve a tirar.</p>
+
+    <h2>Mover las fichas</h2>
+    <ul>
+      <li>Tiras dos dados; cada dado es un movimiento independiente. Con un 5 y un 3 puedes mover una ficha 5 y otra 3, o la misma ficha 5 + 3 (aterrizando en un punto intermedio válido).</li>
+      <li>Una ficha puede mover a cualquier punto que esté vacío, ocupado por fichas propias o por <b>una sola</b> ficha rival.</li>
+      <li>No se puede mover a un punto con <b>dos o más fichas rivales</b> (punto <i>bloqueado</i>).</li>
+      <li><b>Dobles:</b> si sacas dos números iguales, juegas ese número <b>cuatro veces</b>.</li>
+    </ul>
+
+    <h2>Uso obligatorio de los dados</h2>
+    <ul>
+      <li>Debes usar <b>ambos dados</b> (o los cuatro movimientos en dobles) siempre que sea posible.</li>
+      <li>Si solo puedes usar uno de los dos dados, debes usar el <b>mayor</b> si es posible.</li>
+      <li>Si no puedes mover nada, pierdes el turno. El juego lo detecta automáticamente y solo te permite jugadas legales.</li>
+    </ul>
+
+    <h2>Golpear y la barra</h2>
+    <ul>
+      <li>Una ficha sola en un punto es una <b>ficha expuesta</b> (<i>blot</i>). Si el rival cae en ese punto, la <b>golpea</b> y la manda a la <b>barra</b>.</li>
+      <li>Si tienes fichas en la barra, <b>debes reentrarlas antes</b> de mover cualquier otra. Entran por la casa del rival: con un 1 entras en su punto 1 desde su lado (tu punto 24), con un 6 en su punto 6 (tu punto 19).</li>
+      <li>Si los puntos correspondientes a tus dados están bloqueados, no puedes entrar y pierdes el turno.</li>
+    </ul>
+
+    <h2>Sacar fichas (bear off)</h2>
+    <ul>
+      <li>Solo puedes empezar a sacar fichas cuando <b>las 15</b> están en tu casa.</li>
+      <li>Un dado saca una ficha del punto con ese mismo número (con un 4, sacas una ficha del punto 4).</li>
+      <li>Si no hay ficha en ese punto, debes mover una ficha de un punto más alto. Si tampoco hay fichas en puntos más altos, puedes sacar la ficha del punto más alto ocupado.</li>
+      <li>Si te golpean durante esta fase, debes reentrar y volver a llevar esa ficha a casa antes de seguir sacando.</li>
+    </ul>
+
+    <h2>Final de la partida y puntuación</h2>
+    <table>
+      <tr><th>Resultado</th><th>Condición</th><th>Puntos</th></tr>
+      <tr><td>Victoria simple</td><td>El rival ya ha sacado al menos una ficha</td><td>1</td></tr>
+      <tr><td>Gammon</td><td>El rival no ha sacado ninguna ficha</td><td>2</td></tr>
+      <tr><td>Backgammon</td><td>El rival no ha sacado ninguna y aún tiene fichas en la barra o en tu casa</td><td>3</td></tr>
+    </table>
+    <p>El marcador se acumula mientras juegues revanchas. (Esta versión no usa el cubo de doblar).</p>
+
+    <h2>Controles de esta versión</h2>
+    <ol>
+      <li>Pulsa <b>Tirar dados</b> (o el botón del tablero).</li>
+      <li>Haz clic en una ficha que se pueda mover (las movibles tienen un anillo discontinuo).</li>
+      <li>Los destinos posibles se iluminan: haz clic en uno para mover. Para sacar una ficha, haz clic en la <b>bandeja</b> iluminada de la derecha.</li>
+      <li>Cuando hayas usado los dados, pulsa <b>Terminar turno</b> (o haz clic en los dados). Puedes activar el fin de turno automático en el menú.</li>
+      <li><b>Deshacer</b> revierte tus movimientos del turno actual antes de terminarlo.</li>
+    </ol>
+    <p>Atajos de teclado: <kbd>Espacio</kbd> tirar dados / terminar turno · <kbd>Z</kbd> deshacer · <kbd>Esc</kbd> deseleccionar.</p>
+    <p>En los paneles superiores verás el <b>recuento de pips</b> de cada jugador: la suma de lo que le falta a todas sus fichas para salir. Quien tiene menos pips va por delante en la carrera.</p>
+
+    <h2>Niveles del ordenador</h2>
+    <ul>
+      <li><b>Fácil:</b> juega muchas veces al azar; ideal para aprender las reglas.</li>
+      <li><b>Normal:</b> valora cada jugada (puntos construidos, fichas expuestas, carrera) y elige la mejor.</li>
+      <li><b>Difícil:</b> usa una evaluación más afinada (ajustada mediante miles de partidas de práctica) y anticipa la mejor respuesta del rival para cada una de las 21 tiradas posibles.</li>
+    </ul>
+
+    <h2>Consejos estratégicos</h2>
+    <div class="tip">Construye puntos (dos o más fichas juntas), sobre todo en tu casa y en tu punto 7 (la <i>barra</i>). Varios puntos seguidos forman un <b>bloqueo</b> (prime) muy difícil de saltar.</div>
+    <ul>
+      <li>Evita dejar fichas solas al alcance del rival (a 6 puntos o menos es muy arriesgado).</li>
+      <li>Golpear es potente: el rival pierde todo el camino recorrido por esa ficha y además un tiempo para reentrar.</li>
+      <li>Si vas muy por delante en pips, intenta romper el contacto y convertir la partida en una carrera.</li>
+      <li>Si vas por detrás, mantén puntos de anclaje en la casa del rival para esperar oportunidades de golpear.</li>
+    </ul>
+    <p style="text-align:center;margin-top:1.6em"><button class="btn primary" id="rulesBack2">Volver</button></p>
+  </div>
+</section>
+
+<script>
+'use strict';
+/*ENGINE-START*/
+// =====================================================================
+//  MOTOR DE REGLAS
+//  pts[i] > 0 : fichas del jugador 0 (mueve de 23 -> 0, casa 0..5)
+//  pts[i] < 0 : fichas del jugador 1 (mueve de 0 -> 23, casa 18..23)
+//  Movimientos: from = -1 (barra), to = -2 (fuera)
+// =====================================================================
+function initialState(){
+  const pts=new Array(24).fill(0);
+  pts[23]=2; pts[12]=5; pts[7]=3; pts[5]=5;
+  pts[0]=-2; pts[11]=-5; pts[16]=-3; pts[18]=-5;
+  return {pts,bar:[0,0],off:[0,0]};
+}
+const SG=p=>p===0?1:-1;
+function cnt(s,i,p){const v=s.pts[i];return p===0?(v>0?v:0):(v<0?-v:0);}
+function cloneS(s){return {pts:s.pts.slice(),bar:s.bar.slice(),off:s.off.slice()};}
+function distinct(a){return [...new Set(a)];}
+function removeOne(a,v){const r=a.slice();const i=r.indexOf(v);if(i>=0)r.splice(i,1);return r;}
+function canBearOff(s,p){
+  if(s.bar[p]) return false;
+  if(p===0){for(let i=6;i<24;i++) if(s.pts[i]>0) return false;}
+  else {for(let i=0;i<18;i++) if(s.pts[i]<0) return false;}
+  return true;
+}
+function singleMoves(s,p,d){
+  const res=[],o=1-p;
+  if(s.bar[p]>0){
+    const t=p===0?24-d:d-1, oc=cnt(s,t,o);
+    if(oc<2) res.push({from:-1,to:t,die:d,hit:oc===1});
+    return res;
+  }
+  const bo=canBearOff(s,p);
+  for(let i=0;i<24;i++){
+    if(cnt(s,i,p)===0) continue;
+    const t=p===0?i-d:i+d;
+    if(t>=0&&t<24){
+      const oc=cnt(s,t,o);
+      if(oc<2) res.push({from:i,to:t,die:d,hit:oc===1});
+    } else if(bo){
+      if(t===-1||t===24) res.push({from:i,to:-2,die:d,hit:false});
+      else{
+        let further=false;
+        if(p===0){for(let j=i+1;j<6;j++) if(s.pts[j]>0){further=true;break;}}
+        else {for(let j=18;j<i;j++) if(s.pts[j]<0){further=true;break;}}
+        if(!further) res.push({from:i,to:-2,die:d,hit:false});
+      }
+    }
+  }
+  return res;
+}
+function applyMove(s,p,m){
+  const n=cloneS(s),sg=SG(p);
+  if(m.from===-1) n.bar[p]--; else n.pts[m.from]-=sg;
+  if(m.to===-2) n.off[p]++;
+  else{
+    if(cnt(n,m.to,1-p)===1){n.pts[m.to]=0;n.bar[1-p]++;}
+    n.pts[m.to]+=sg;
+  }
+  return n;
+}
+// Máximo número de dados que se pueden usar desde este estado
+function maxUsable(s,p,rem){
+  if(!rem.length) return 0;
+  let best=0;
+  for(const d of distinct(rem)){
+    for(const m of singleMoves(s,p,d)){
+      const v=1+maxUsable(applyMove(s,p,m),p,removeOne(rem,d));
+      if(v>best){best=v;if(best===rem.length) return best;}
+    }
+  }
+  return best;
+}
+// Movimientos individuales legales ahora mismo (respetando el uso obligatorio de dados)
+function legalMoves(s,p,rem){
+  if(!rem.length) return [];
+  const target=maxUsable(s,p,rem);
+  if(target===0) return [];
+  let list=[];
+  for(const d of distinct(rem)) for(const m of singleMoves(s,p,d)){
+    if(target===1||1+maxUsable(applyMove(s,p,m),p,removeOne(rem,d))===target) list.push(m);
+  }
+  if(target===1&&rem.length===2&&rem[0]!==rem[1]){
+    const hi=Math.max(rem[0],rem[1]);
+    if(list.some(m=>m.die===hi)) list=list.filter(m=>m.die===hi);
+  }
+  return list;
+}
+function stateKey(s){return s.pts.join(',')+'|'+s.bar[0]+','+s.bar[1]+'|'+s.off[0]+','+s.off[1];}
+function rankOf(p,from){return from===-1?25:(p===0?from+1:24-from);}
+// Todas las secuencias completas de movimiento (sin posiciones finales duplicadas)
+function genSeqs(s,p,dice){
+  const dbl=dice.length>1&&dice.every(x=>x===dice[0]);
+  let best=0,map=new Map();
+  (function rec(st,rem,moves,last){
+    let any=false;
+    for(const d of distinct(rem)){
+      for(const m of singleMoves(st,p,d)){
+        const r=rankOf(p,m.from);
+        if(dbl&&r>last) continue; // en dobles, orden canónico para evitar permutaciones
+        any=true;
+        rec(applyMove(st,p,m),removeOne(rem,d),moves.concat([m]),dbl?r:99);
+      }
+    }
+    if(!any){
+      const L=moves.length;
+      if(L>best){best=L;map=new Map();}
+      if(L===best){const k=stateKey(st);if(!map.has(k)) map.set(k,{moves,state:st});}
+    }
+  })(s,dice,[],99);
+  let arr=[...map.values()];
+  if(best===0) return [];
+  if(best===1&&dice.length===2&&dice[0]!==dice[1]){
+    const hi=Math.max(...dice);
+    if(arr.some(x=>x.moves[0].die===hi)) arr=arr.filter(x=>x.moves[0].die===hi);
+  }
+  return arr;
+}
+function pipCount(s,p){
+  let t=s.bar[p]*25;
+  for(let i=0;i<24;i++){const c=cnt(s,i,p);if(c) t+=c*(p===0?i+1:24-i);}
+  return t;
+}
+
+// =====================================================================
+//  INTELIGENCIA ARTIFICIAL
+// =====================================================================
+const ROLLS=[];
+for(let a=1;a<=6;a++) for(let b=a;b<=6;b++) ROLLS.push([a,b,a===b?1:2]);
+// Valor de tener un punto hecho, según la distancia a la salida (1..24)
+const PTV=[0,1,2.5,4,5,7,6,5,3,3,2,2,1.5,1,1,1,1,1,1,2.5,4,4,2.5,2,2];
+function persp(s,p){
+  const me=new Array(26).fill(0),op=new Array(26).fill(0);
+  for(let i=0;i<24;i++){
+    const v=s.pts[i]; if(!v) continue;
+    if(v>0){ if(p===0) me[i+1]=v; else op[i+1]=v; }
+    else { if(p===1) me[24-i]=-v; else op[24-i]=-v; }
+  }
+  me[25]=s.bar[p]; op[25]=s.bar[1-p];
+  return {me,op};
+}
+// Pesos de la evaluación. HARD se obtuvo ajustando NORMAL mediante miles de partidas de auto-juego.
+const W_NORMAL={pip:1,home:1,outer:1,anchor:1,prime:3,st:1,ost:.6,barb:3,barh:2.2,stack:1,db:3,dl:.22,oh:.1,ib:1,il:.08};
+const W_HARD=Object.assign({},W_NORMAL,{home:1.6,outer:1.6,anchor:.5,prime:1.5,barb:4.8,db:1.5,dl:.352,oh:.16});
+function structVal(a,W){
+  let v=0,run=0,best=0;
+  for(let d=1;d<=24;d++){
+    if(a[d]>=2){v+=(d<=6?W.home:d<=12?W.outer:d>=19?W.anchor:1)*PTV[d];run++;if(run>best)best=run;}
+    else run=0;
+  }
+  if(best>=3) v+=(best-2)*(best-2)*W.prime;
+  return v;
+}
+function noContact(me,op){
+  let mMax=0,oMax=0;
+  for(let d=1;d<=25;d++){if(me[d])mMax=d;if(op[d])oMax=d;}
+  return mMax+oMax<=25;
+}
+// Evaluación de una posición para el jugador p (justo después de que p haya movido)
+function evaluate(s,p,W){
+  const o=1-p;
+  if(s.off[p]===15) return 1e5;
+  if(s.off[o]===15) return -1e5;
+  const {me,op}=persp(s,p);
+  let pm=0,po=0;
+  for(let d=1;d<=25;d++){pm+=me[d]*d;po+=op[d]*d;}
+  if(noContact(me,op)){ // carrera pura
+    let sc=(po-pm)*1.2+(s.off[p]-s.off[o])*0.6;
+    for(let d=1;d<=6;d++) if(me[d]>3) sc-=(me[d]-3)*0.15;
+    return sc;
+  }
+  let sc=(po-pm)*W.pip;
+  let mh=0,oh=0;
+  for(let d=1;d<=6;d++){if(me[d]>=2)mh++;if(op[d]>=2)oh++;}
+  sc+=W.st*structVal(me,W)-W.ost*structVal(op,W);              // puntos y bloqueos
+  sc+=op[25]*(W.barb+mh*W.barh)-me[25]*(W.barb+oh*W.barh);     // fichas en la barra
+  for(let d=1;d<=24;d++) if(me[d]>3) sc-=(me[d]-3)*W.stack;   // pilas excesivas
+  for(let d=1;d<=24;d++) if(me[d]===1){                       // fichas expuestas
+    let direct=0,ind=0;
+    for(let e=1;e<=25;e++) if(op[e]){
+      const t=e+d-25;
+      if(t>=1&&t<=6) direct++; else if(t>=7&&t<=12) ind++;
+    }
+    if(direct) sc-=(W.db+W.dl*(25-d))*(1+oh*W.oh);
+    else if(ind) sc-=(W.ib+W.il*(25-d));
+  }
+  return sc;
+}
+function bestBy(seqs,p,W){
+  let best=null,bv=-Infinity;
+  for(const x of seqs){const v=evaluate(x.state,p,W)+Math.random()*1e-3;if(v>bv){bv=v;best=x;}}
+  return best;
+}
+function chooseMove(s,p,dice,level){
+  const seqs=genSeqs(s,p,dice);
+  if(!seqs.length) return [];
+  if(seqs.length===1) return seqs[0].moves;
+  const win=seqs.find(x=>x.state.off[p]===15);
+  if(win) return win.moves;
+  if(level==='easy'){
+    if(Math.random()<0.55) return seqs[Math.floor(Math.random()*seqs.length)].moves;
+    return bestBy(seqs,p,W_NORMAL).moves;
+  }
+  if(level==='normal') return bestBy(seqs,p,W_NORMAL).moves;
+  // Difícil: evaluación ajustada + anticipación de la mejor respuesta del rival en cada tirada
+  const o=1-p;
+  const scored=seqs.map(x=>({x,v:evaluate(x.state,p,W_HARD)})).sort((a,b)=>b.v-a.v);
+  const pp=persp(scored[0].x.state,p);
+  if(noContact(pp.me,pp.op)) return scored[0].x.moves;
+  const K=Math.min(8,scored.length);
+  let best=scored[0].x,bv=-Infinity;
+  for(let i=0;i<K;i++){
+    const cand=scored[i].x;
+    let exp=0;
+    for(const [a,b,w] of ROLLS){
+      const rep=genSeqs(cand.state,o,a===b?[a,a,a,a]:[a,b]);
+      let rv=-Infinity;
+      for(const r of rep){const v=evaluate(r.state,o,W_HARD);if(v>rv) rv=v;}
+      if(rv===-Infinity) rv=evaluate(cand.state,o,W_HARD);
+      exp-=w*rv;
+    }
+    if(exp>bv){bv=exp;best=cand;}
+  }
+  return best.moves;
+}
+/*ENGINE-END*/
+
+// =====================================================================
+//  INTERFAZ
+// =====================================================================
+const $=id=>document.getElementById(id);
+const THEMES=[{id:'classic',name:'Madera'},{id:'casino',name:'Casino'},{id:'midnight',name:'Medianoche'},{id:'sand',name:'Arena'}];
+const DIFF_NAME={easy:'Fácil',normal:'Normal',hard:'Difícil'};
+const DIFF_TXT={easy:'Juega a menudo al azar. Ideal para aprender.',normal:'Valora cada jugada con criterios posicionales.',hard:'Evaluación afinada y anticipa la respuesta del rival a cada tirada.'};
+const store={
+  load(){try{return JSON.parse(localStorage.getItem('bg_settings'))||{};}catch(e){return {};}},
+  save(o){try{localStorage.setItem('bg_settings',JSON.stringify(o));}catch(e){}}
+};
+const settings=Object.assign({mode:1,diff:'normal',theme:'classic',autoEnd:false,name1:'',name2:''},store.load());
+let G=null, prevScreen='menu';
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));
+}
+function applyTheme(){document.body.dataset.theme=settings.theme;}
+
+// ---------- Menú ----------
+function buildMenu(){
+  const ts=$('themeSel'); ts.innerHTML='';
+  for(const t of THEMES){
+    const b=document.createElement('button');
+    b.className='sw'; b.dataset.theme=t.id; b.dataset.v=t.id;
+    b.innerHTML='<div class="mini"><i></i><i></i><b></b><b></b></div><span>'+t.name+'</span>';
+    b.onclick=()=>{settings.theme=t.id;store.save(settings);applyTheme();syncMenu();};
+    ts.appendChild(b);
+  }
+  $('modeSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.mode=+b.dataset.v;store.save(settings);syncMenu();});
+  $('diffSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{settings.diff=b.dataset.v;store.save(settings);syncMenu();});
+  $('autoEnd').onchange=e=>{settings.autoEnd=e.target.checked;store.save(settings);};
+  $('name1').oninput=e=>{settings.name1=e.target.value;store.save(settings);};
+  $('name2').oninput=e=>{settings.name2=e.target.value;store.save(settings);};
+  $('btnPlay').onclick=()=>newGame(false);
+  $('btnContinue').onclick=()=>{if(G){showScreen('game');render();}};
+  $('btnRules').onclick=()=>openRules('menu');
+  syncMenu();
+}
+function syncMenu(){
+  $('modeSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===settings.mode));
+  $('diffSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===settings.diff));
+  $('themeSel').querySelectorAll('.sw').forEach(b=>b.classList.toggle('on',b.dataset.v===settings.theme));
+  $('diffField').style.display=settings.mode===1?'':'none';
+  $('diffHint').textContent=DIFF_TXT[settings.diff];
+  $('autoEnd').checked=!!settings.autoEnd;
+  $('name1').value=settings.name1||'';
+  $('name1').placeholder=settings.mode===1?'Tu nombre':'Jugador 1';
+  if(settings.mode===1){$('name2').value='Ordenador';$('name2').disabled=true;}
+  else {$('name2').disabled=false;$('name2').value=settings.name2||'';}
+  $('btnContinue').style.display=(G&&G.phase!=='over')?'':'none';
+}
+function openRules(from){prevScreen=from;showScreen('rules');$('rules').scrollTop=0;}
+
+// ---------- Partida ----------
+function newGame(keepScore){
+  const score=keepScore&&G?G.score.slice():[0,0];
+  const gen=G?G.gen+1:1;
+  const one=settings.mode===1;
+  G={
+    gen, s:initialState(), turn:0, dice:[], rem:[], phase:'opening', hist:[], sel:null, legal:[],
+    ai:one?1:-1, diff:settings.diff, score, anims:[], rolling:false, prefix:'',
+    names:[(settings.name1||'').trim()||(one?'Tú':'Jugador 1'), one?'Ordenador ('+DIFF_NAME[settings.diff]+')':((settings.name2||'').trim()||'Jugador 2')]
+  };
+  $('modal').classList.add('hidden');
+  showScreen('game');
+  setMsg('Tirada inicial: cada jugador tira un dado y el más alto empieza. Pulsa <b>Tirar dados</b>.');
+  render();
+}
+const isAI=p=>G&&G.ai===p;
+function later(fn,ms){const g=G.gen;setTimeout(()=>{if(G&&G.gen===g) fn();},ms);}
+function setMsg(h){$('msg').innerHTML='<span>'+h+'</span>';}
+const rnd=()=>1+Math.floor(Math.random()*6);
+function nm(p){return '<b>'+esc(G.names[p])+'</b>';}
+function esc(t){return t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function canRoll(){return G&&!G.rolling&&(G.phase==='opening'||(G.phase==='roll'&&!isAI(G.turn)));}
+function canEnd(){return G&&G.phase==='move'&&!isAI(G.turn)&&!G.rolling&&G.legal.length===0;}
+function canUndo(){return G&&G.phase==='move'&&!isAI(G.turn)&&G.hist.length>0;}
+
+function doRoll(){
+  if(!G||G.rolling) return;
+  if(G.phase!=='roll'&&G.phase!=='opening') return;
+  const opening=G.phase==='opening';
+  G.rolling=true;
+  const g=G.gen; let t=0;
+  const iv=setInterval(()=>{
+    if(!G||G.gen!==g){clearInterval(iv);return;}
+    G.dice=[rnd(),rnd()]; render();
+    if(++t>=8){clearInterval(iv);finish();}
+  },60);
+  function finish(){
+    G.rolling=false;
+    const a=rnd(),b=rnd();
+    if(opening){
+      if(a===b){
+        G.dice=[];
+        setMsg('Tirada inicial: '+nm(0)+' saca '+a+' y '+nm(1)+' saca '+b+'. ¡Empate! Vuelve a tirar.');
+        render(); return;
+      }
+      G.turn=a>b?0:1;
+      G.prefix='Tirada inicial: '+nm(0)+' saca <b>'+a+'</b>, '+nm(1)+' saca <b>'+b+'</b>. ';
+      G.dice=a>b?[a,b]:[b,a];
+      G.rem=G.dice.slice();
+    } else {
+      G.dice=[a,b];
+      G.rem=a===b?[a,a,a,a]:[a,b];
+    }
+    startMovePhase();
+  }
+}
+function diceText(){
+  const d=G.dice;
+  return d[0]===d[1]?'<b>doble '+d[0]+'</b> (4 movimientos)':'<b>'+d[0]+'</b> y <b>'+d[1]+'</b>';
+}
+function startMovePhase(){
+  G.phase='move'; G.hist=[]; G.sel=null;
+  G.legal=legalMoves(G.s,G.turn,G.rem);
+  const pre=G.prefix; G.prefix='';
+  if(!G.legal.length){
+    G.phase='nomove';
+    setMsg(pre+nm(G.turn)+' saca '+diceText()+' pero <b>no puede mover</b>. Pierde el turno.');
+    render(); later(endTurn,2000); return;
+  }
+  if(isAI(G.turn)){
+    setMsg(pre+nm(G.turn)+' saca '+diceText()+'. Pensando…');
+    render(); aiPlay(); return;
+  }
+  const usable=maxUsable(G.s,G.turn,G.rem);
+  let extra='';
+  if(usable<G.rem.length) extra=' Solo puedes usar '+usable+(usable===1?' dado':' movimientos')+'.';
+  humanPrompt(pre+nm(G.turn)+': has sacado '+diceText()+'.'+extra);
+  render();
+}
+function humanPrompt(base){
+  if(G.s.bar[G.turn]>0){G.sel=-1;setMsg(base+' Tienes fichas en la barra: <b>reentra primero</b> eligiendo un punto iluminado.');}
+  else setMsg(base+' Elige una ficha para mover.');
+}
+function endTurn(){
+  if(!G||G.phase==='over') return;
+  G.turn=1-G.turn; G.dice=[]; G.rem=[]; G.phase='roll'; G.hist=[]; G.sel=null; G.legal=[];
+  if(isAI(G.turn)){
+    setMsg('Turno de '+nm(G.turn)+'.');
+    render(); later(doRoll,650);
+  } else {
+    setMsg('Turno de '+nm(G.turn)+'. Pulsa <b>Tirar dados</b>.');
+    render();
+  }
+}
+function doMove(m){
+  const p=G.turn,old=G.s;
+  const from=topXY(old,m.from,p);
+  const hitFrom=m.hit?ptXY(m.to,0,1):null;
+  const ns=applyMove(old,p,m);
+  G.s=ns; G.rem=removeOne(G.rem,m.die);
+  G.anims=[{k:topKey(ns,m.to,p),from,to:topXY(ns,m.to,p),delay:0}];
+  if(m.hit) G.anims.push({k:topKey(ns,-1,1-p),from:hitFrom,to:topXY(ns,-1,1-p),delay:200});
+}
+function humanMove(m){
+  G.hist.push({s:G.s,rem:G.rem.slice()});
+  doMove(m);
+  G.sel=null;
+  if(G.s.off[G.turn]===15){G.legal=[];render();later(()=>gameOver(G.turn),450);return;}
+  G.legal=legalMoves(G.s,G.turn,G.rem);
+  if(!G.legal.length){
+    if(settings.autoEnd){setMsg('Turno completado.');render();later(endTurn,550);return;}
+    setMsg(G.rem.length?'No puedes usar los dados restantes. Pulsa <b>Terminar turno</b> (o haz clic en los dados).':'Movimientos completados. Pulsa <b>Terminar turno</b> (o haz clic en los dados), o <b>Deshacer</b>.');
+  } else humanPrompt(m.hit?'¡Ficha golpeada!':'Te queda por mover: '+G.rem.join(', ')+'.');
+  render();
+}
+function undo(){
+  if(!canUndo()) return;
+  const h=G.hist.pop();
+  G.s=h.s; G.rem=h.rem; G.sel=null;
+  G.legal=legalMoves(G.s,G.turn,G.rem);
+  humanPrompt('Movimiento deshecho.');
+  render();
+}
+function onBoardClick(t){
+  if(!G||G.phase!=='move'||isAI(G.turn)||G.rolling) return;
+  if(G.sel!==null){
+    const dest=t==='off'?-2:(t==='bar'?null:t);
+    if(dest!==null){
+      const opts=G.legal.filter(m=>m.from===G.sel&&m.to===dest).sort((a,b)=>a.die-b.die);
+      if(opts.length){humanMove(opts[0]);return;}
+    }
+  }
+  const src=t==='bar'?-1:(t==='off'?null:t);
+  if(src!==null&&G.legal.some(m=>m.from===src)){
+    G.sel=(G.sel===src&&src!==-1)?null:src; render(); return;
+  }
+  if(G.sel!==null&&G.s.bar[G.turn]===0){G.sel=null;render();}
+}
+function aiPlay(){
+  later(()=>{
+    const p=G.turn;
+    const moves=chooseMove(G.s,p,G.rem.slice(),G.diff);
+    const step=k=>{
+      if(k>=moves.length){later(endTurn,550);return;}
+      doMove(moves[k]); render();
+      if(G.s.off[p]===15){later(()=>gameOver(p),500);return;}
+      later(()=>step(k+1),620);
+    };
+    later(()=>step(0),350);
+  },80);
+}
+function gameOver(w){
+  const o=1-w;
+  let pts=1,kind='Victoria simple';
+  if(G.s.off[o]===0){
+    let bg=G.s.bar[o]>0;
+    const [a,b]=w===0?[0,5]:[18,23];
+    for(let i=a;i<=b;i++) if(cnt(G.s,i,o)>0) bg=true;
+    if(bg){pts=3;kind='¡Backgammon!';} else {pts=2;kind='¡Gammon!';}
+  }
+  G.score[w]+=pts; G.phase='over'; G.dice=[]; G.sel=null; G.legal=[];
+  render();
+  let title;
+  if(G.ai>=0) title=w===G.ai?'Gana el ordenador':'¡Has ganado!';
+  else title='¡Gana '+esc(G.names[w])+'!';
+  $('mTitle').innerHTML=title;
+  $('mText').innerHTML=kind+' — '+pts+(pts===1?' punto':' puntos')+'<br><br>Marcador: '+esc(G.names[0])+' <b>'+G.score[0]+'</b> – <b>'+G.score[1]+'</b> '+esc(G.names[1]);
+  setMsg(title+' '+kind+' ('+pts+(pts===1?' punto':' puntos')+').');
+  $('modal').classList.remove('hidden');
+}
+
+// ---------- Geometría del tablero ----------
+const R=31,TOP=40,BOT=720,MID=380;
+function pointX(i){
+  if(i<6) return 550+(5-i)*75+37.5;
+  if(i<12) return 40+(11-i)*75+37.5;
+  if(i<18) return 40+(i-12)*75+37.5;
+  return 550+(i-18)*75+37.5;
+}
+function stackStep(n){return n<=5?62:248/(n-1);}
+function ptXY(i,k,n){const x=pointX(i),st=stackStep(n);return i>=12?[x,TOP+R+1+k*st]:[x,BOT-R-1-k*st];}
+function barXY(p,k,n){const st=n<=4?62:186/(n-1);return p===0?[520,MID-62-k*st]:[520,MID+62+k*st];}
+function offXY(p,k){return p===0?[1047.5,BOT-16-k*19]:[1047.5,TOP+16+k*19];}
+function topXY(s,loc,p){
+  if(loc===-1){const n=s.bar[p];return barXY(p,Math.max(n-1,0),Math.max(n,1));}
+  if(loc===-2) return offXY(p,Math.max(s.off[p]-1,0));
+  const n=cnt(s,loc,p);return ptXY(loc,Math.max(n-1,0),Math.max(n,1));
+}
+function topKey(s,loc,p){
+  if(loc===-1) return 'b'+p+'-'+(s.bar[p]-1);
+  if(loc===-2) return 'o'+p+'-'+(s.off[p]-1);
+  return 'p'+loc+'-'+(cnt(s,loc,p)-1);
+}
+
+// ---------- Render ----------
+const PIPS={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};
+function dieSVG(cx,cy,v,size,owner,faded,rot){
+  const h=size/2,o=size*0.27,r=size*0.095;
+  let s='<g class="die'+(faded?' used':'')+'" transform="translate('+cx+' '+cy+') rotate('+(rot||0)+')"><rect x="'+(-h)+'" y="'+(-h)+'" width="'+size+'" height="'+size+'" rx="'+(size*0.18)+'" class="dbody d'+owner+'" filter="url(#sh)"/>';
+  for(const [a,b] of PIPS[v]) s+='<circle cx="'+(a*o)+'" cy="'+(b*o)+'" r="'+r+'" class="dpip d'+owner+'"/>';
+  return s+'</g>';
+}
+function checkerSVG(x,y,o,key,ring,label){
+  return '<g class="ck" data-k="'+key+'" transform="translate('+x+' '+y+')">'+
+    '<circle r="'+R+'" class="cb c'+o+'" filter="url(#sh)"/>'+
+    '<circle r="22" class="cr c'+o+'"/><circle r="14" class="cr c'+o+'"/>'+
+    (label?'<text class="cnum c'+o+'" y="7">'+label+'</text>':'')+
+    (ring?'<circle r="35" class="ring '+ring+'"/>':'')+'</g>';
+}
+function render(){
+  if(!G) return;
+  const s=G.s,p=G.turn,L=[];
+  const human=!isAI(p)&&G.phase==='move'&&!G.rolling;
+  const view=G.ai>=0?0:p;
+  const sources=new Set(),dests=new Set();
+  if(human) for(const m of G.legal){sources.add(m.from);if(G.sel!==null&&m.from===G.sel) dests.add(m.to);}
+  const ringFor=(loc,owner)=>{
+    if(!human||owner!==p) return '';
+    if(G.sel===loc) return 'sel';
+    if(G.sel===null&&sources.has(loc)) return 'mv';
+    return '';
+  };
+  // marco y fieltro
+  L.push('<rect class="frame" x="0" y="0" width="1100" height="760" rx="24"/>',
+    '<rect x="0" y="0" width="1100" height="760" rx="24" fill="#000" filter="url(#grain)" opacity=".55"/>',
+    '<rect class="framehi" x="5" y="5" width="1090" height="750" rx="20"/>',
+    '<rect class="felt" x="40" y="40" width="450" height="680"/>','<rect class="felt" x="550" y="40" width="450" height="680"/>',
+    '<rect x="40" y="40" width="450" height="680" fill="#000" filter="url(#feltf)" opacity=".25"/>','<rect x="550" y="40" width="450" height="680" fill="#000" filter="url(#feltf)" opacity=".25"/>',
+    '<rect class="barr" x="490" y="28" width="60" height="704" rx="6"/>',
+    '<rect x="490" y="28" width="60" height="704" rx="6" fill="#000" filter="url(#grain)" opacity=".5"/>',
+    '<rect class="tray" x="1013" y="40" width="68" height="330" rx="8"/>','<rect class="tray" x="1013" y="390" width="68" height="330" rx="8"/>');
+  // puntos
+  for(let i=0;i<24;i++){
+    const x=pointX(i)-37.5,top=i>=12;
+    const pts=top?(x+3)+',40 '+(x+72)+',40 '+(x+37.5)+',335':(x+3)+',720 '+(x+72)+',720 '+(x+37.5)+',425';
+    L.push('<polygon points="'+pts+'" class="'+(i%2?'ptB':'ptA')+'"/>','<polygon points="'+pts+'" fill="url(#'+(top?'gTop':'gBot')+')"/>');
+    if(dests.has(i)) L.push('<polygon points="'+pts+'" class="dest"/>');
+    L.push('<text x="'+(x+37.5)+'" y="'+(top?27:746)+'" class="num">'+(view===0?i+1:24-i)+'</text>');
+  }
+  L.push('<rect class="inset" x="40" y="40" width="450" height="680"/>','<rect class="inset" x="550" y="40" width="450" height="680"/>');
+  // bandeja: resaltar si se puede sacar
+  if(dests.has(-2)) L.push('<rect class="trayhl" x="1013" y="'+(p===0?390:40)+'" width="68" height="330" rx="8"/>');
+  // fichas en puntos
+  for(let i=0;i<24;i++){
+    const v=s.pts[i]; if(!v) continue;
+    const o=v>0?0:1,n=Math.abs(v);
+    for(let k=0;k<n;k++){
+      const [x,y]=ptXY(i,k,n),isTop=k===n-1;
+      L.push(checkerSVG(x,y,o,'p'+i+'-'+k,isTop?ringFor(i,o):'',isTop&&n>5?n:0));
+    }
+  }
+  // barra
+  for(const q of [0,1]){
+    const n=s.bar[q];
+    for(let k=0;k<n;k++){const [x,y]=barXY(q,k,n);L.push(checkerSVG(x,y,q,'b'+q+'-'+k,k===n-1?ringFor(-1,q):'',k===n-1&&n>1?n:0));}
+  }
+  // fichas fuera
+  for(const q of [0,1]) for(let k=0;k<s.off[q];k++){
+    const [x,y]=offXY(q,k);
+    L.push('<g data-k="o'+q+'-'+k+'" transform="translate('+x+' '+y+')"><rect class="slab c'+q+'" x="-27" y="-7.5" width="54" height="15" rx="4"/></g>');
+  }
+  // marcadores de destino
+  for(const d of dests){
+    if(d<0) continue;
+    const own=cnt(s,d,p);
+    const [x,y]=own?ptXY(d,own,own+1):ptXY(d,0,1);
+    L.push('<circle class="slot" cx="'+x+'" cy="'+y+'" r="'+(R-2)+'"/>');
+  }
+  // zonas de clic
+  for(let i=0;i<24;i++){const x=pointX(i)-37.5;L.push('<rect class="hz" data-t="'+i+'" x="'+x+'" y="'+(i>=12?40:380)+'" width="75" height="340"/>');}
+  L.push('<rect class="hz" data-t="bar" x="490" y="40" width="60" height="680"/>','<rect class="hz" data-t="off" x="1008" y="40" width="80" height="680"/>');
+  // dados / botón
+  const sideX=q=>q===0?775:265;
+  if(G.phase==='opening'&&G.rolling){
+    L.push(dieSVG(775,MID,G.dice[0],54,0,false,-8),dieSVG(265,MID,G.dice[1],54,1,false,8));
+  } else if(canRoll()){
+    const cx=G.phase==='opening'?775:sideX(p);
+    L.push('<g class="rollbtn" data-act="roll" transform="translate('+cx+' '+MID+')"><rect x="-100" y="-25" width="200" height="50" rx="25" filter="url(#sh)"/><text y="7">TIRAR DADOS</text></g>');
+  } else if(G.dice.length&&G.phase!=='over'){
+    const cx=sideX(p);
+    const four=G.dice[0]===G.dice[1]&&!G.rolling;
+    const list=four?[G.dice[0],G.dice[0],G.dice[0],G.dice[0]]:G.dice.slice();
+    const size=four?44:54,gap=12,w=list.length*size+(list.length-1)*gap;
+    const remC=G.rem.slice(),faded=new Array(list.length).fill(true);
+    if(G.phase==='move'||G.rolling){
+      for(let j=0;j<list.length;j++){
+        if(G.rolling){faded[j]=false;continue;}
+        const ix=remC.indexOf(list[j]); if(ix>=0){remC.splice(ix,1);faded[j]=false;}
+      }
+    } else faded.fill(G.phase==='nomove');
+    L.push('<g class="dice" data-act="dice">');
+    list.forEach((v,j)=>L.push(dieSVG(cx-w/2+size/2+j*(size+gap),MID,v,size,p,faded[j],G.rolling?(Math.random()*30-15):(j%2?5:-5))));
+    L.push('</g>');
+  }
+  const layer=$('layer');
+  layer.innerHTML=L.join('');
+  // animaciones
+  if(G.anims.length){
+    for(const a of G.anims){
+      const el=layer.querySelector('[data-k="'+a.k+'"]');
+      if(!el||!a.from||!el.animate) continue;
+      el.parentNode.appendChild(el);
+      el.animate([{transform:'translate('+a.from[0]+'px,'+a.from[1]+'px)'},{transform:'translate('+a.to[0]+'px,'+a.to[1]+'px)'}],
+        {duration:340,delay:a.delay||0,easing:'cubic-bezier(.3,.75,.3,1)',fill:'backwards'});
+    }
+    G.anims=[];
+    // los dados siempre encima
+    const dc=layer.querySelector('.dice'); if(dc) layer.appendChild(dc);
+  }
+  updatePanels(); updateTools();
+}
+function updatePanels(){
+  for(const q of [0,1]){
+    const el=$('pl'+q);
+    el.querySelector('.nm').textContent=G.names[q];
+    el.querySelector('.st').textContent='Pips: '+pipCount(G.s,q)+' · Fuera: '+G.s.off[q]+'/15'+(G.s.bar[q]?' · Barra: '+G.s.bar[q]:'');
+    el.querySelector('.sc').textContent=G.score[q];
+    el.classList.toggle('act',G.phase!=='opening'&&G.phase!=='over'&&G.turn===q);
+  }
+}
+function updateTools(){
+  $('bRoll').disabled=!canRoll();
+  $('bUndo').disabled=!canUndo();
+  const ce=canEnd();
+  $('bEnd').disabled=!ce;
+  $('bEnd').classList.toggle('pulse',ce);
+}
+
+// ---------- Eventos ----------
+$('board').addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]');
+  if(a){
+    if(a.dataset.act==='roll'){if(canRoll()) doRoll();}
+    else if(a.dataset.act==='dice'){if(canEnd()) endTurn();}
+    return;
+  }
+  const t=e.target.closest('[data-t]');
+  if(!t) return;
+  const v=t.dataset.t;
+  onBoardClick(v==='bar'||v==='off'?v:+v);
+});
+$('bRoll').onclick=()=>{if(canRoll()) doRoll();};
+$('bUndo').onclick=undo;
+$('bEnd').onclick=()=>{if(canEnd()) endTurn();};
+$('bMenu').onclick=()=>{showScreen('menu');syncMenu();};
+$('bHelp').onclick=()=>openRules('game');
+$('bTheme').onclick=()=>{
+  const i=THEMES.findIndex(t=>t.id===settings.theme);
+  settings.theme=THEMES[(i+1)%THEMES.length].id; store.save(settings); applyTheme(); syncMenu();
+};
+$('rulesBack').onclick=$('rulesBack2').onclick=()=>{showScreen(prevScreen);if(prevScreen==='menu')syncMenu();else render();};
+$('mAgain').onclick=()=>newGame(true);
+$('mMenu').onclick=()=>{$('modal').classList.add('hidden');showScreen('menu');syncMenu();};
+document.addEventListener('keydown',e=>{
+  if(!$('game').classList.contains('active')||e.target.tagName==='INPUT') return;
+  if(e.code==='Space'||e.code==='Enter'){
+    e.preventDefault();
+    if(canRoll()) doRoll(); else if(canEnd()) endTurn();
+  } else if(e.key==='z'||e.key==='Z'){undo();}
+  else if(e.key==='Escape'){if(G&&G.sel!==null&&G.s.bar[G.turn]===0){G.sel=null;render();}}
+});
+
+applyTheme();
+buildMenu();
+</script>
+</body>
+</html>
